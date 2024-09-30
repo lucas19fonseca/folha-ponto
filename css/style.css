@@ -17,7 +17,7 @@ body {
     margin-bottom: 20px;
     margin-top: 20em;
     width: 20em;
-    height: 9em;
+    height: 10em;
     
 }
 
@@ -84,6 +84,7 @@ body {
     margin-top: 10px;
     transition: background-color 0.3s;   
 }
+
 #btn-dialog-bater-ponto{
     margin-left: 8em;
     padding: 1em;
