@@ -1,75 +1,82 @@
-// TO-DO:
-// Organizar código-fonte,
-
+// Elementos do DOM
 const diaSemana = document.getElementById("dia-semana");
 const diaMesAno = document.getElementById("dia-mes-ano");
 const horaMinSeg = document.getElementById("hora-min-seg");
-
 const btnBaterPonto = document.getElementById("btn-bater-ponto");
-btnBaterPonto.addEventListener("click", register);
-
 const dialogPonto = document.getElementById("dialog-ponto");
-
 const btnDialogFechar = document.getElementById("btn-dialog-fechar");
-btnDialogFechar.addEventListener("click", () => {
-    dialogPonto.close();
-});
-
-
-let registerLocalStorage = getRegisterLocalStorage();
-
 const dialogData = document.getElementById("dialog-data");
 const dialogHora = document.getElementById("dialog-hora");
-
 const divAlertaRegistroPonto = document.getElementById("alerta-registro-ponto");
+const typeRegister = document.getElementById("tipos-ponto");
+const btnDialogBaterPonto = document.getElementById("btn-dialog-bater-ponto");
 
-
+// Dados iniciais
 diaSemana.textContent = getWeekDay();
 diaMesAno.textContent = getCurrentDate();
+printCurrentHour();
 
+// Event Listeners
+btnBaterPonto.addEventListener("click", openRegisterDialog);
+btnDialogFechar.addEventListener("click", () => dialogPonto.close());
+btnDialogBaterPonto.addEventListener("click", registerPonto);
 
-// TO-DO:
-// Por que esta função não retorna a localização?
-// [doc]
-function getCurrentPosition() {
-    navigator.geolocation.getCurrentPosition((position) => {
-        return position;
-    });
+// Atualiza hora a cada segundo
+setInterval(printCurrentHour, 1000);
+
+// Funções
+function getWeekDay() {
+    const days = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
+    return days[new Date().getDay()];
 }
 
+function getCurrentDate() {
+    const date = new Date();
+    return date.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
 
-const typeRegister = document.getElementById("tipos-ponto");
+function getCurrentHour() {
+    return new Date().toLocaleTimeString("pt-BR", { hour12: false });
+}
 
-const btnDialogBaterPonto = document.getElementById("btn-dialog-bater-ponto");
-btnDialogBaterPonto.addEventListener("click", () => {
+function printCurrentHour() {
+    horaMinSeg.textContent = getCurrentHour();
+}
 
-    let lastTypeRegister = localStorage.getItem("lastTypeRegister");
+function openRegisterDialog() {
+    dialogData.textContent = `Data: ${getCurrentDate()}`;
+    dialogHora.textContent = `Hora: ${getCurrentHour()}`;
 
-    // TO-DO:
-    // Pq o select não está com a option correspondente?
-    if(lastTypeRegister == "entrada") {
-        console.log("lastTypeRegister é entrada");
-        typeRegister.value = "intervalo";
+    const lastRegisterText = `Último registro: ${localStorage.getItem("lastDateRegister")} - ${localStorage.getItem("lastTimeRegister")} | ${localStorage.getItem("lastTypeRegister")}`;
+    document.getElementById("dialog-last-register").textContent = lastRegisterText;
+
+    dialogPonto.showModal();
+}
+
+function registerPonto() {
+    const lastTypeRegister = localStorage.getItem("lastTypeRegister");
+
+    switch (lastTypeRegister) {
+        case "entrada":
+            typeRegister.value = "intervalo";
+            break;
+        case "intervalo":
+            typeRegister.value = "volta-intervalo";
+            break;
+        case "volta-intervalo":
+            typeRegister.value = "saida";
+            break;
+        default:
+            typeRegister.value = "entrada";
     }
-    if(lastTypeRegister == "intervalo") {
-        typeRegister.value = "volta-intervalo";
-    }
-    if(lastTypeRegister == "volta-intervalo") {
-        typeRegister.value = "saida";
-    }
-    if(lastTypeRegister == "saida") {
-        typeRegister.value = "entrada"
-    }
 
-    let ponto = {
-        "data": getCurrentDate(),
-        "hora": getCurrentHour(),
-        "localizacao": getCurrentPosition(),
-        "id": 1,
-        "tipo": typeRegister.value
-    }
-
-    console.log(ponto);
+    const ponto = {
+        data: getCurrentDate(),
+        hora: getCurrentHour(),
+        localizacao: getCurrentPosition(),
+        id: 1,
+        tipo: typeRegister.value
+    };
 
     saveRegisterLocalStorage(ponto);
 
@@ -78,98 +85,56 @@ btnDialogBaterPonto.addEventListener("click", () => {
     localStorage.setItem("lastTimeRegister", ponto.hora);
 
     dialogPonto.close();
+    showAlert("Ponto registrado com sucesso!", "sucesso");
+}
 
-    // TO-DO:
-    // CRIAR UM ALERTA NO TOPO DA PÁGINA PRINCIPAL PARA CONFIRMAR O REGISTRO DE PONTO
-    // DEVE FICAR ABERTO POR 3 SEGUNDOS E DEVE TER UM EFEITO DE TRANSIÇÃO
-    // DEVE PODER SER FECHADO PELO USUÁRIO QUE NÃO QUISER AGUARDAR 3s
-    // DEVE MOSTRAR UMA MENSAGEM DE SUCESSO AO REGISTRAR O PONTO
-    // CASO OCORRA ALGUM ERRO, MOSTRAR NO ALERTA 
-    // AS CORES DEVEM SER DIFERENTES EM CASO DE SUCESSO/ERRO/ALERTA
-
-    divAlertaRegistroPonto.classList.remove("hidden");
-    divAlertaRegistroPonto.classList.add("show");
-    
-    // TO-DO:
-    // fazer um efeito de transição para o alerta
-
-    setTimeout(() => {
-        divAlertaRegistroPonto.classList.remove("show");
-        divAlertaRegistroPonto.classList.add("hidden");
-    }, 5000);
-
-});
-
+function getCurrentPosition() {
+    return new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(
+            (position) => resolve(position),
+            () => reject("Localização não permitida")
+        );
+    });
+}
 
 function saveRegisterLocalStorage(register) {
-    registerLocalStorage.push(register); // Array
-    localStorage.setItem("register", JSON.stringify(registerLocalStorage));
-} 
+    const registers = getRegisterLocalStorage();
+    registers.push(register);
+    localStorage.setItem("register", JSON.stringify(registers));
+}
 
-
-// Esta função deve retornar sempre um ARRAY, mesmo que seja vazio
 function getRegisterLocalStorage() {
-    let registers = localStorage.getItem("register");
-
-    if(!registers) {
-        return [];
-    }
-
-    return JSON.parse(registers); // converte de JSON para Array
+    return JSON.parse(localStorage.getItem("register")) || [];
 }
 
-
-// TO-DO:
-// alterar o nome da função
-function register() {
-    // TO-DO:
-    // Atualizar hora a cada segundo e data 00:00:00
-    dialogData.textContent = "Data: " + getCurrentDate();
-    dialogHora.textContent = "Hora: " + getCurrentHour();
-
-    let lastRegisterText = "Último registro: " + localStorage.getItem("lastDateRegister") + " - " + localStorage.getItem("lastTimeRegister") + " | " + localStorage.getItem("lastTypeRegister")
-    document.getElementById("dialog-last-register").textContent = lastRegisterText;
-
-    dialogPonto.showModal();
-
-    console.log(localStorage.getItem("lastTypeRegister"));
+function showAlert(message, type) {
+    divAlertaRegistroPonto.textContent = message;
+    divAlertaRegistroPonto.classList.remove("hidden");
+    divAlertaRegistroPonto.classList.add(type);
+    
+    setTimeout(() => {
+        divAlertaRegistroPonto.classList.add("hidden");
+    }, 5000);
 }
+const uploadFoto = document.getElementById('upload-foto');
+        const previewFoto = document.getElementById('preview-foto');
 
-function getWeekDay() {
-    const date = new Date();
-    let days = ["Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira", "Quinta-feira", "Sexta-feira", "Sábado"];
-    return days[date.getDay()];
-}
+        uploadFoto.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
 
-function getCurrentHour() {
-    const date = new Date();
-    return String(date.getHours()).padStart(2, '0') + ":" + String(date.getMinutes()).padStart(2, '0') + ":" + String(date.getSeconds()).padStart(2, '0');
-}
+                reader.addEventListener('load', function() {
+                    previewFoto.setAttribute('src', this.result);
+                    previewFoto.style.display = 'block';
+                });
 
-
-function getCurrentDate() {
-    // TO-DO:
-    // Alterar a solução para considerar padStart ou slice
-    // Considerar formatos diferentes da data, conforme localização
-    // do usuário dd/mm/aaaa, mm/dd/aaaa, aaaa/mm/dd, aaaa.mm.dd
-    // Verificar se no Date() há algum método que possa auxiliar
-    // locale
-    const date = new Date();
-    let month = date.getMonth();
-    let day = date.getDate();
-    if (day < 10) {
-        day = "0" + day
-    }
-    if (month < 10) {
-        month = "0" + (month + 1)
-    }
-    return day + "/" + month + "/" + date.getFullYear();
-}
-
-function printCurrentHour() {
-    horaMinSeg.textContent = getCurrentHour();
-}
-
-
-printCurrentHour();
-setInterval(printCurrentHour, 1000);
+                reader.readAsDataURL(file);
+            } else {
+                previewFoto.style.display = 'none';
+            }
+        });
+        document.getElementById("btn-dialog-bater-ponto").addEventListener("click", function() {
+            window.location.href = "/folha-ponto/historico.html";
+        });
+        
